@@ -1,0 +1,111 @@
+# Reproducible Research Assignment #1
+=======================================
+
+#1 Loading and preprocessing the data
+#Load the data
+#Process/transform the data (if necessary) into a format suitable for your analysis
+
+```{r}
+data <- read.csv("activity.csv")
+data$date <- as.Date(data$date, format = "%Y-%m-%d")
+data$datetime <- as.POSIXlt(data$date)
+data$datetime$min <- data$interval %% 100
+data$datetime$hour <- data$interval %/% 100
+```
+
+#2 What is mean total number of steps taken per day?
+
+#A: 9354.23
+```{r}
+stepsPerDay <- tapply(data$steps, data$date, sum, na.rm = T)
+averagePerDay <- mean(stepsPerDay)
+```
+# Make a histogram of the total number of steps taken each day
+
+```{r}
+hist(stepsPerDay, xlab = "Number of Steps", main = "Histogram of total number of steps taken each day", col = "red")
+```
+
+# Calculate and report the mean and median total number of steps taken per day
+
+```{r}
+mean <- mean(stepsPerDay)
+median <- median(stepsPerDay)
+```
+
+#3 What is the average daily activity pattern?
+
+```{r}
+avgStepsPer5min <- tapply(data$steps, data$interval, mean, na.rm = T)
+avgStepsPer5min
+```
+
+# Make a time series plot of the 5 minute interval (x-axis) and the average number of steps taken, averaged across 
+# all days (y-axis) Which 5 minute interval, on average across all the days in the dataset, 
+# contains the maximum number of steps?
+
+# A: 835th min
+
+```{r}
+plot(names(avgStepsPer5min), avgStepsPer5min, type = 'l', xlab = "5 Minute interval",
+     main = "Average number of steps taken, \n averaged across all days",
+     ylab = "Number of Steps")
+names(which.max(avgStepsPer5min))
+```
+
+#4 IMPUTING MISSING VALUES
+# 1) Calculate and report the total number of missing values in the dataset
+
+# A: Total number of missing values (NAs) are 2304.
+
+```{r}
+totalNA <- sum(is.na(data$steps))
+```
+
+# 2) Devise a strategy for filling in all of the missing values in the dataset. The strategy 
+#    does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean 
+#    for that 5 minute interval, etc.
+#   My Strategy: I replaced all the NAs with the median value for that day.
+
+# 3) Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+medianStepsPer5min = tapply(data$steps, data$internal, median, na.rm = T)
+correctedData <- data
+correctedData[is.na(data$steps), 'steps'] = medianStepsPer5min[as.character(data[is.na(data$steps), 'internal'])]
+```
+
+# 4) Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total
+#    number of steps taken per day. Do these values differ from the estimates from the first part of the assignment?
+#    What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r}
+stepsPerDay = tapply(correctedData$steps, correcedData$date, sum, na.rm = T)
+hist(stepsPerday, xlab = "Number of Steps", main = "Histogram of total number of steps taken each day")
+
+mean(stepsPerDay)
+median(stepsPerDay)
+```
+
+#A: New mean is a bit higher than the old one, and new median is equal to the old one.
+
+
+# 5 ARE THERE DIFFERENCES IN ACTIVITY PATTERNS BETWEEN WEEKDAYS AND WEEKENDS?
+# 1) Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given
+# date is a weekday or weekend day.
+
+```{r}
+factorValues = as.factor(c('weekday', 'weekend'))
+correctedData$dayType = factorValues[correctedData$datetime$wday %in% c(0,6) + 1]
+```
+
+# 2) Make a panel plot containing a time series plot of the 5 minute interval (x-axis) and the average number
+# of steps taken, averaged across all weekend days or weekend days (y-axis). The plot should look something like the
+# following, which was created using simulated data:
+
+```{r}
+library(ggplot2)
+library(plyr)
+avgStepsPer5min = ddply(correctedData, (interval, dayType), summarize, steps = mean(steps))
+qplot(interval, steps, data = avgStepsPer5min, facets = dayType ~ ., geom = "line") + ylab("Number of steps") + xlab("Interval")
+```
